@@ -1,16 +1,31 @@
 #LAB 3
 #EJER 1
-import pyaudio, kbhit
-
-from scipy.io import wavfile # para manejo de wavs
-import numpy as np  # arrays    
-from format_tools import *
-import random
-
+# reproductor con Chunks
+#%%
+import numpy as np         # arrays    
+import sounddevice as sd   # modulo de conexión con portAudio
+import soundfile as sf     # para lectura/escritura de wavs
+import kbhit
+import basicGenerators as bas               # para lectura de teclas no bloqueante
+import format_tools as ft
 import math
 from scipy import signal
-CHUNK = 1024
+
+CHUNK = 2048
 SRATE = 44100
+# leemos wav en array numpy (data)
+# por defecto lee float64, pero podemos hacer directamente la conversion a float32
+# data, SRATE = sf.read('piano.wav',dtype="float32")
+
+
+# # informacion de wav
+# print("\n\nInfo del wav ",SRATE)
+# print("  Sample rate ",SRATE)
+# print("  Sample format: ",data.dtype)
+# print("  Num channels: ",len(data.shape))
+# print("  Len: ",data.shape[0])
+
+
 class Osc:
     # constructura de la clase
     def __init__(self, frec = 1):
@@ -29,44 +44,52 @@ class Osc:
       return tempArray
     def changeFrec(self, newFrec):
         self.frec += newFrec
-        
 
-
-
-
-# arrancamos pyAudio
-p = pyaudio.PyAudio()
 bloque = np.arange(CHUNK, dtype=np.float32)
+# abrimos stream de salida
+stream = sd.OutputStream(
+    samplerate = SRATE,            # frec muestreo 
+    blocksize  = CHUNK,            # tamaño del bloque (muy recomendable unificarlo en todo el programa)
+    channels   = len(bloque.shape),
+    dtype = np.float32
+    )  # num de canales
 
-stream = p.open(format=p.get_format_from_width(getWidthData(bloque)),
-                channels=1,
-                rate=SRATE,
-                frames_per_buffer=CHUNK,
-                output=True)
+# arrancamos stream
+stream.start()
 
 
+# En data tenemos el wav completo, ahora procesamos por bloques (chunks)
+# bloque = np.arange(CHUNK,dtype=data.dtype)
+numBloque = 0
 kb = kbhit.KBHit()
-osc = Osc()
 c= ' '
-while c!= 'q': 
-    # nuevo bloque
-    bloque = osc.next();  
 
-    # pasamos al stream  haciendo conversion de tipo 
-    stream.write(bloque.astype(bloque.dtype).tobytes())
+vol = 1.0
+nSamples = CHUNK 
+print('\n\nProcessing chunks: ',end='')
+osc = Osc(440)
+# termina con 'q' o cuando el último bloque ha quedado incompleto (menos de CHUNK samples)
+while c!= 'q' and nSamples==CHUNK: 
+    # numero de samples a procesar: CHUNK si quedan sufucientes y si no, los que queden
+    bloque = osc.next()
+    print(bloque)
+    bloque = ft.toFloat32(bloque)
+    bloque *= vol
+    # lo pasamos al stream
+    stream.write(bloque) # escribimos al stream
 
+    # modificación de volumen 
     if kb.kbhit():
         c = kb.getch()
+        if (c=='v'): vol= max(0,vol-0.05)
+        elif (c=='V'): vol= min(1,vol+0.05)
+        print("Vol: ",vol)
 
-    if(c == 'F'): 
-        osc.changeFrec(0.1)
-    elif (c == 'f'):
-        osc.changeFrec(-0.1)
+    numBloque += 1
     print('.',end='')
 
-kb.set_normal_term()        
-stream.stop_stream()
-stream.close()
-p.terminate()
 
+print('end')
+stream.stop()
 
+# %%
