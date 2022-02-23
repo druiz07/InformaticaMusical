@@ -410,3 +410,22 @@ plt.plot(arrayfinal)
 plt.show()
 stream.stop()
 # %%
+class Retard:
+    # constructura de la clase
+    def __init__(self,initialSample,delay):
+        self.initialS = initialSample
+        self.chunkSize= 2048
+        self.delay= delay
+    
+    def createDelay(self):
+        finalSample=np.zeros(len(self.initialS)+self.chunkSize*self.delay,dtype=np.float32)
+        i=self.chunkSize*self.delay
+        #Nos situamos desde la cantidad de retardo que estamos poniendo
+        while i<len(finalSample):
+         finalSample[i]=self.initialS
+         i+=1
+         
+        return finalSample
+
+
+
