@@ -533,3 +533,93 @@ sf.write("rec.wav", buffer, SRATE)
 
 kb.set_normal_term()
 
+
+#%%
+# reproductor simple 
+#from asyncio.windows_events import NULL
+from operator import indexOf
+import numpy as np         # arrays    
+import sounddevice as sd   # modulo de conexión con portAudio
+import soundfile as sf     # para lectura/escritura de wavs
+
+SRATE = 44100
+
+notes = "C.D.EF.G.a.bc.d.ef.g."
+freqs = [523.251*(2**(i/12)) for i in range(24)]
+
+hpday = [("G",0.5),("G",0.5),("a",1),
+        ("G",1),("c",1),("b",2),
+        ("G",0.5),("G",0.5),("a",1),("G",1),
+        ("d",1),("c",2),
+        ("G",0.5),("G",0.5),("g",1),("e",1),
+        ("c",1),("b",1),("a",1),
+        ("f",0.5),("f",0.5),("e",1),("c",1),
+        ("d",1),("c",2)]
+
+def get_freq_dur(note):
+    dur = note[1]
+    i = notes.index(note[0])
+    freq = freqs[i]
+    return freq, dur
+
+# returns a sinusoidal signal with frec, dur, vol
+def osc(frec,dur,vol=1):
+    # number of samples requiered according to SRATE
+    nSamples = int(SRATE*dur)
+    return vol * np.sin(2*np.pi*np.arange(nSamples)*frec/SRATE)
+
+# leemos wav en array numpy (data)
+# por defecto lee en formato dtype="float64". No hay problema para reproducción simple (hace conversiones internas)
+#data, SRATE = sf.read('house.wav')
+
+
+data = []
+for i in range(len(hpday)):
+    freq, dur = get_freq_dur(hpday[i])
+    data = np.append(data, osc(freq, dur))
+
+# informacion de wav
+print("\n\nInfo del wav ",SRATE)
+print("  Sample rate ",SRATE)
+print("  Sample format: ",data.dtype)
+print("  Num channels: ",len(data.shape))
+print("  Len: ",data.shape[0])
+
+
+# bajamos volumen
+data = data * 0.5
+
+# a reproducir!
+sd.play(data, SRATE)
+
+# bloqueamos la ejecución hasta que acabe
+sd.wait()
+# %%
+#reproductor simple 
+import numpy as np         # arrays    
+import sounddevice as sd   # modulo de conexión con portAudio
+import soundfile as sf
+from sqlalchemy import true     # para lectura/escritura de wavs
+import kbhit 
+
+# leemos wav en array numpy (data)
+# por defecto lee en formato dtype="float64". No hay problema para reproducción simple (hace conversiones internas)
+data, SRATE = sf.read('piano.wav',dtype="float32")
+
+
+# informacion de wav
+print("\n\nInfo del wav ",SRATE)
+print("  Sample rate ",SRATE)
+print("  Sample format: ",data.dtype)
+print("  Num channels: ",len(data.shape))
+print("  Len: ",data.shape[0])
+
+
+
+kb = kbhit.KBHit()
+c=''
+while True:
+ if kb.kbhit():
+        c = kb.getch()
+        if (c=='C'): sd.play(data, SRATE)
+sd.wait()
