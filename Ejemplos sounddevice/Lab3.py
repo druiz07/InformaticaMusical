@@ -410,22 +410,126 @@ plt.plot(arrayfinal)
 plt.show()
 stream.stop()
 # %%
+from re import A
+from black import Enum
+import numpy as np         # arrays    
+import sounddevice as sd   # modulo de conexión con portAudio
+import soundfile as sf     # para lectura/escritura de wavs
+import kbhit
+import basicGenerators as bas               # para lectura de teclas no bloqueante
+import format_tools as ft
+import math
+from scipy import signal
+import enum
+CHUNK = 2048
+SRATE = 44100
+CHUNK = 2048
 class Retard:
     # constructura de la clase
-    def __init__(self,initialSample,delay):
+    def __init__(self,initialSample,delayInSecs):
         self.initialS = initialSample
-        self.chunkSize= 2048
-        self.delay= delay
+        print(self.initialS)
+        self.delay= delayInSecs / SRATE
+        self.actSample = 0
+        # chunk / SRATE
     
     def createDelay(self):
-        finalSample=np.zeros(len(self.initialS)+self.chunkSize*self.delay,dtype=np.float32)
-        i=self.chunkSize*self.delay
+        finalSample=np.zeros(CHUNK,dtype=np.float32)
+        # i=SRATE*self.delay
+
+        i = self.delay
         #Nos situamos desde la cantidad de retardo que estamos poniendo
-        while i<len(finalSample):
-         finalSample[i]=self.initialS
+        while i<len(finalSample) and (i-self.delay) < len(self.initialS):
+        
+         finalSample[i]=self.initialS[i-self.delay]
+         print(finalSample[i])
          i+=1
+
+        self.actSample = CHUNK - self.delay
          
         return finalSample
 
 
+
+
+
+a = [0,1,2,3,4,5,6,7,8,9,10]
+print(a)
+retardado = Retard(a, 3)
+test = retardado.createDelay()
+i = 0
+while i < 20:
+    print(test[i])
+    i += 1
+print(test)
+
+
+
+
+## notas = A.BC.DE.EF.G.a.bc.d.ef.g.
+## frecs= (220 *(2**(i/12)) for i in range 12
+##index ('G', notas)
+#FRECS[notas.index'G']
+
+# %%
+
+from re import A
+from black import Enum
+import numpy as np         # arrays    
+import sounddevice as sd   # modulo de conexión con portAudio
+import soundfile as sf     # para lectura/escritura de wavs
+import kbhit
+import basicGenerators as bas               # para lectura de teclas no bloqueante
+import format_tools as ft
+import math
+from scipy import signal
+import enum
+CHUNK = 2048
+SRATE = 44100
+CHUNK = 2048
+CHANNELS = 1
+
+# abrimos stream de entrada (InpuStream)
+stream = sd.InputStream(samplerate=SRATE, blocksize=CHUNK, dtype="float32", channels=1)
+
+# arrancamos stream
+stream.start()
+
+print("* grabando")
+print("* pulsa q para termninar")
+
+# buffer para acumular grabación.
+# (0,1): con un canal (1), vacio (de tamaño 0)
+buffer = np.empty((0, 1), dtype="float32")
+
+# bucle de grabación
+kb = kbhit.KBHit()
+c = ' '
+while c != 'q': 
+    bloque = stream.read(CHUNK)  # recogida de samples en array numpy    
+    # read devuelve un par (samples,bool)
+    retardo = Retard(bloque[0], 1)
+    
+    buffer = np.append(buffer,retardo.createDelay()) # en bloque[0] están los samples
+    sd.play(buffer, SRATE)
+    if kb.kbhit(): c = kb.getch()
+
+stream.stop() 
+print("* grabacion terminada")
+
+print('Quieres reproducir [S/n]? ',end='')
+# bloqueamos ejecucion para recoger respuesta
+while not kb.kbhit(): 
+    True
+
+# reproducción del buffer adquirido
+c = kb.getch()
+if c!='n':
+    sd.play(buffer, SRATE)
+    sd.wait()
+
+# volcado a un archivo wav, utilizando la librería soundfile 
+sf.write("rec.wav", buffer, SRATE)
+
+kb.set_normal_term()
 
