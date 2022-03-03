@@ -37,10 +37,10 @@
 # kb = kbhit.KBHit()
 # c = ' '
 
-# fc = 440
+# fm = 
 # beta = 1
 # frame = 0
-
+#fm = 300
 
 
 
@@ -55,12 +55,10 @@
 #       mouseX, mouseY = event.pos
 
 #     coords= scaleMouse(mouseX,mouseY)
-#     samples = oscFM(fc,coords[0],beta,coords[1],frame)
+#     samples = oscFM(coords[0],fm,beta,coords[1],frame)
    
 #     stream.write(np.float32(0.5*samples)) 
 
-    
-#     frame += CHUNK
 
 # stream.stop()
 
